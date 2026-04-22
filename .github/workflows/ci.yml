@@ -1,0 +1,14 @@
+name: build
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift --version
+      - run: swift test
+      - run: ./scripts/build-app.sh
+      - run: ./scripts/smoke-cli.sh
