@@ -29,6 +29,9 @@ public let cliHelp = """
           --no-collapse-spaces
                              keep runs of spaces inside lines
           --unwrap           join hard-wrapped lines into paragraphs
+          --collapse-tabs    also clean rows with tab-separated cells (spreadsheet data)
+          --keep-markdown-breaks
+                             keep two trailing spaces (Markdown line breaks)
           --straight-quotes  replace curly quotes with straight ones
           --clipboard        operate on the clipboard instead of stdin
       -h, --help             show this help
@@ -65,6 +68,8 @@ public func parseCLI(_ args: [String]) throws -> CLIConfig {
         case "--keep-blank-lines": overrides.append { $0.collapseBlankLines = false }
         case "--no-collapse-spaces": overrides.append { $0.collapseSpaces = false }
         case "--unwrap": overrides.append { $0.unwrapParagraphs = true }
+        case "--collapse-tabs": overrides.append { $0.protectTables = false }
+        case "--keep-markdown-breaks": overrides.append { $0.keepMarkdownLineBreaks = true }
         case "--straight-quotes": overrides.append { $0.straightenQuotes = true }
         default: throw CLIError.unknownFlag(arg)
         }

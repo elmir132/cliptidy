@@ -30,6 +30,11 @@ public enum TextCleaner {
                 previousBlank = false
                 continue
             }
+            if options.protectTables && isTabularRow(raw) {
+                lines.append(Line(text: raw, kind: .code))
+                previousBlank = false
+                continue
+            }
             let cleaned = cleanLine(raw, options: options)
             if cleaned.isEmpty {
                 if !(options.collapseBlankLines && previousBlank) {
@@ -107,7 +112,18 @@ public enum TextCleaner {
         if options.collapseSpaces {
             body = body.replacingOccurrences(of: "[ \t]+", with: " ", options: .regularExpression)
         }
+        if options.keepMarkdownLineBreaks && raw.hasSuffix("  ") {
+            body += "  "
+        }
         return leading + body
+    }
+
+    private static let tabular = try! NSRegularExpression(pattern: #"\S[ \t]*\t[ \t]*\S"#)
+
+    /// A row with a tab between two pieces of visible text: spreadsheet cells.
+    /// A leading tab is indentation and a trailing tab is stray whitespace; neither counts.
+    static func isTabularRow(_ line: String) -> Bool {
+        tabular.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)) != nil
     }
 
     private static let structural = try! NSRegularExpression(
@@ -118,21 +134,42 @@ public enum TextCleaner {
         return structural.firstMatch(in: line, range: range) != nil
     }
 
-    /// Join runs of ordinary text lines into one line each. A run that contains any
-    /// list item, heading, quote or table row is kept line by line, because guessing
-    /// there would damage the structure.
+    /// A line shorter than this is never treated as a wrapped line.
+    static let minimumWrapWidth = 30
+    /// A line is "full" when it reaches this share of the longest line in its paragraph.
+    static let fullLineShare = 0.6
+
+    /// Join hard-wrapped lines. Within a run of ordinary text lines, a line is joined to
+    /// the next one only if it looks full: at least `minimumWrapWidth` characters and at
+    /// least `fullLineShare` of the longest line in the run. Short lines (headings, names,
+    /// sign-offs) and lines that end a Markdown hard break are never joined to the next.
+    /// A run that contains any list item, marked heading, quote or table row is kept line
+    /// by line, because guessing there would damage the structure.
     static func unwrap(_ lines: [Line]) -> [Line] {
         var out: [Line] = []
         var group: [Line] = []
 
         func flush() {
             guard !group.isEmpty else { return }
+            defer { group.removeAll() }
             if group.contains(where: { looksStructural($0.text) }) {
                 out.append(contentsOf: group)
-            } else {
-                out.append(Line(text: group.map(\.text).joined(separator: " "), kind: .text))
+                return
             }
-            group.removeAll()
+            let longest = group.map { $0.text.count }.max() ?? 0
+            let threshold = max(minimumWrapWidth, Int((Double(longest) * fullLineShare).rounded(.up)))
+            var current = group[0].text
+            for index in 1..<group.count {
+                let previous = group[index - 1].text
+                let joinable = previous.count >= threshold && !previous.hasSuffix("  ")
+                if joinable {
+                    current += " " + group[index].text
+                } else {
+                    out.append(Line(text: current, kind: .text))
+                    current = group[index].text
+                }
+            }
+            out.append(Line(text: current, kind: .text))
         }
 
         for line in lines {

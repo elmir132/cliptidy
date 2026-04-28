@@ -1,7 +1,7 @@
 .PHONY: test app install smoke clean
 
 test:
-	swift test
+	./scripts/test.sh
 
 app:
 	./scripts/build-app.sh

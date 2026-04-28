@@ -12,7 +12,9 @@ import Testing
 
     @Test func trimsLinesAndCollapsesSpaces() {
         #expect(clean("  hello   world \t ") == "hello world")
-        #expect(clean("a\t\tb") == "a b")
+        var o = CleanOptions.standard
+        o.protectTables = false
+        #expect(clean("a\t\tb", o) == "a b")
     }
 
     @Test func collapsesBlankRunsButKeepsOneBlankLine() {
@@ -142,8 +144,10 @@ import Testing
     @Test func unwrapJoinsHardWrappedParagraphs() {
         var o = CleanOptions.standard
         o.unwrapParagraphs = true
-        #expect(clean("This is a\nwrapped line\nof text.\n\nSecond paragraph\nalso wrapped.", o)
-                == "This is a wrapped line of text.\n\nSecond paragraph also wrapped.")
+        let first = "The first paragraph was wrapped by an old mail program\nat a fixed width, so it ends mid-sentence."
+        let second = "A second paragraph follows after a blank line and was\nwrapped in exactly the same way."
+        #expect(clean(first + "\n\n" + second, o)
+                == "The first paragraph was wrapped by an old mail program at a fixed width, so it ends mid-sentence.\n\nA second paragraph follows after a blank line and was wrapped in exactly the same way.")
     }
 
     @Test(arguments: [
@@ -163,7 +167,12 @@ import Testing
     @Test func unwrapNeverTouchesCodeInsideFences() {
         var o = CleanOptions.standard
         o.unwrapParagraphs = true
-        #expect(clean("a\nb\n```\nx\ny\n```\nc\nd", o) == "a b\n```\nx\ny\n```\nc d")
+        let a = "first line that is long enough to be wrapped"
+        let b = "and its continuation"
+        let c = "another long enough line before the end"
+        let d = "and its tail"
+        #expect(clean("\(a)\n\(b)\n```\nx\ny\n```\n\(c)\n\(d)", o)
+                == "\(a) \(b)\n```\nx\ny\n```\n\(c) \(d)")
     }
 
     // MARK: presets
@@ -174,7 +183,8 @@ import Testing
     }
 
     @Test func prosePresetStraightensAndUnwraps() {
-        #expect(clean("\u{201C}It was a\nlong day.\u{201D}", .prose) == "\"It was a long day.\"")
+        #expect(clean("\u{201C}It was a long day at the office and the\ntrain was late again.\u{201D}", .prose)
+                == "\"It was a long day at the office and the train was late again.\"")
     }
 
     // MARK: idempotence

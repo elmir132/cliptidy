@@ -12,11 +12,11 @@ final class HotKeyCenter {
 
     static let signature: OSType = 0x434C5444  // "CLTD"
 
-    let onPress: () -> Void
+    let onPress: (UInt32) -> Void
     private var refs: [EventHotKeyRef] = []
     private var handlerRef: EventHandlerRef?
 
-    init(onPress: @escaping () -> Void) {
+    init(onPress: @escaping (UInt32) -> Void) {
         self.onPress = onPress
     }
 
@@ -64,6 +64,7 @@ private func hotKeyHandler(
         nil, MemoryLayout<EventHotKeyID>.size, nil, &id)
     guard status == noErr, id.signature == HotKeyCenter.signature else { return noErr }
     let center = Unmanaged<HotKeyCenter>.fromOpaque(userData).takeUnretainedValue()
-    DispatchQueue.main.async { center.onPress() }
+    let pressed = id.id
+    DispatchQueue.main.async { center.onPress(pressed) }
     return noErr
 }

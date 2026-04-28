@@ -25,8 +25,15 @@ public struct CleanOptions: Codable, Equatable, Sendable {
     /// Replace curly quotes with straight ones.
     public var straightenQuotes: Bool = false
     /// Join lines that were hard-wrapped (PDFs, emails) back into paragraphs.
-    /// Paragraphs that contain lists, headings, quotes or tables are left as they are.
+    /// Only lines that look full are joined to the next one, so headings, names and
+    /// sign-offs stay on their own line. Paragraphs that contain lists, headings with
+    /// markers, quotes or tables are left as they are.
     public var unwrapParagraphs: Bool = false
+    /// Leave rows that contain tab-separated cells (copied from Excel, Numbers or Sheets)
+    /// exactly as they are, so they still paste into a spreadsheet.
+    public var protectTables: Bool = true
+    /// Keep exactly two trailing spaces on a line that had them: a Markdown hard line break.
+    public var keepMarkdownLineBreaks: Bool = false
 
     public init() {}
 
